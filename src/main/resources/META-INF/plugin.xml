@@ -1,15 +1,19 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.amitcodr.worksonmymachine</id>
     <name>WorksOnMyMachine</name>
     <vendor>amitcodr</vendor>
 
+    <description>
+        Plays customizable sound effects on Build Success, Build Failure,
+        Run Success, and Runtime Exceptions in Android Studio.
+    </description>
+
     <depends>com.intellij.modules.platform</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.amitcodr.worksonmymachine.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.amitcodr.worksonmymachine.startup.MyProjectActivity" />
+        <postStartupActivity implementation="com.github.amitcodr.worksonmymachine.startup.PluginStartup"/>
+        <applicationService serviceImplementation="com.github.amitcodr.worksonmymachine.settings.SettingsState"/>
+        <applicationConfigurable instance="com.github.amitcodr.worksonmymachine.settings.SettingsConfigurable"/>
     </extensions>
+
 </idea-plugin>
