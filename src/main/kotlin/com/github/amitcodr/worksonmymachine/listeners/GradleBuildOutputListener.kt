@@ -14,27 +14,41 @@ class GradleBuildOutputListener : ExecutionListener {
         env: ExecutionEnvironment,
         handler: com.intellij.execution.process.ProcessHandler
     ) {
-        println("WorksOnMyMachine: Process started -> ${env.runProfile.name}")
+        val profileName = env.runProfile.name
+        println("WorksOnMyMachine: Process started -> $profileName")
 
         handler.addProcessListener(object : ProcessAdapter() {
 
             override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
                 val text = event.text ?: return
 
-                // Debug log
-                println("WorksOnMyMachine: Build output -> $text")
+                // Debug all output
+                println("WorksOnMyMachine: [$profileName] -> $text")
 
-                // Detect Gradle build success
-                if (text.contains("BUILD SUCCESSFUL")) {
-                    println("WorksOnMyMachine: BUILD SUCCESS detected (Gradle output)")
+                // 🎯 Detect Gradle build success
+                if (text.contains("BUILD SUCCESSFUL", ignoreCase = true)) {
+                    println("WorksOnMyMachine: BUILD SUCCESS detected from Gradle")
                     SoundManager.playBuildSuccess()
                 }
 
-                // Detect Gradle build failure
-                if (text.contains("BUILD FAILED")) {
-                    println("WorksOnMyMachine: BUILD FAILURE detected (Gradle output)")
+                // 🎯 Detect Gradle build failure
+                if (text.contains("BUILD FAILED", ignoreCase = true)) {
+                    println("WorksOnMyMachine: BUILD FAILURE detected from Gradle")
                     SoundManager.playBuildFailure()
                 }
+
+                // 🎯 Detect install success (Android specific strong signal)
+                if (text.contains("Installing APK") ||
+                    text.contains("Installed on") ||
+                    text.contains("Connected to process")
+                ) {
+                    println("WorksOnMyMachine: APP RUN SUCCESS detected")
+                    SoundManager.playRunSuccess()
+                }
+            }
+
+            override fun processTerminated(event: ProcessEvent) {
+                println("WorksOnMyMachine: Process terminated -> $profileName")
             }
         })
     }
