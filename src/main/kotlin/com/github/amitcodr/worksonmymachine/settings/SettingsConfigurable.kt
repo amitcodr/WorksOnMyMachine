@@ -1,15 +1,19 @@
 package com.github.amitcodr.worksonmymachine.settings
 
+import com.github.amitcodr.worksonmymachine.sound.SoundManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import java.io.File
 import javax.swing.*
 
 class SettingsConfigurable : Configurable {
 
-    private var panel: JPanel? = null
+    private var rootPanel: JPanel? = null
     private var enableCheckBox: JCheckBox? = null
     private var soundField: TextFieldWithBrowseButton? = null
+    private var statusLabel: JLabel? = null
+
     private var buildSuccess: JCheckBox? = null
     private var buildFailure: JCheckBox? = null
     private var runSuccess: JCheckBox? = null
@@ -18,48 +22,81 @@ class SettingsConfigurable : Configurable {
     override fun getDisplayName(): String = "WorksOnMyMachine"
 
     override fun createComponent(): JComponent {
-        panel = JPanel()
-        panel!!.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
+        rootPanel = JPanel()
+        rootPanel!!.layout = BoxLayout(rootPanel, BoxLayout.Y_AXIS)
+        rootPanel!!.border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
 
+        // 🔘 Master Toggle
         enableCheckBox = JCheckBox("Enable Sound Effects")
+
+        // 🎵 Sound Section Title
+        val soundTitle = JLabel("Sound Configuration")
+        soundTitle.font = soundTitle.font.deriveFont(16f)
 
         soundField = TextFieldWithBrowseButton()
         soundField!!.addBrowseFolderListener(
             "Select Sound File",
-            "Choose a WAV sound file (recommended)",
+            "Choose a WAV sound file (recommended for best compatibility)",
             null,
             FileChooserDescriptor(true, false, false, false, false, false)
         )
 
         val testButton = JButton("🔊 Test Audio")
+        testButton.toolTipText = "Play the selected sound file"
+
+        statusLabel = JLabel(" ")
+        statusLabel!!.font = statusLabel!!.font.deriveFont(12f)
 
         testButton.addActionListener {
-            println("WorksOnMyMachine: Test button pressed")
-            com.github.amitcodr.worksonmymachine.sound.SoundManager.testSound()
+            val path = soundField!!.text
+            if (path.isBlank() || !File(path).exists()) {
+                statusLabel!!.text = "❌ Invalid sound file path"
+                return@addActionListener
+            }
+            statusLabel!!.text = "🔊 Playing sound..."
+            SoundManager.testSound()
         }
 
-        buildSuccess = JCheckBox("Play on Build Success")
-        buildFailure = JCheckBox("Play on Build Failure")
-        runSuccess = JCheckBox("Play on Run Success")
-        exception = JCheckBox("Play on Runtime Exception (Crash)")
+        // 🎛 Trigger Section
+        val triggerTitle = JLabel("Sound Triggers")
+        triggerTitle.font = triggerTitle.font.deriveFont(16f)
 
-        panel!!.add(enableCheckBox)
-        panel!!.add(Box.createVerticalStrut(10))
-        panel!!.add(JLabel("Custom Sound File:"))
-        panel!!.add(soundField)
-        panel!!.add(Box.createVerticalStrut(8))
-        panel!!.add(testButton) // ⭐ NEW BUTTON
-        panel!!.add(Box.createVerticalStrut(15))
-        panel!!.add(JLabel("Play sound when:"))
-        panel!!.add(buildSuccess)
-        panel!!.add(buildFailure)
-        panel!!.add(runSuccess)
-        panel!!.add(exception)
+        val reliabilityNote = JLabel(
+            "<html><i>Note: Build events are 100% reliable. " +
+                    "Run/Crash detection depends on Android Studio runtime behavior.</i></html>"
+        )
 
-        return panel!!
+        buildSuccess = JCheckBox("Play on Build Success (Recommended)")
+        buildFailure = JCheckBox("Play on Build Failure (Recommended)")
+        runSuccess = JCheckBox("Play on App Run (Best effort)")
+        exception = JCheckBox("Play on Runtime Crash (Best effort)")
+
+        // Layout
+        rootPanel!!.add(enableCheckBox)
+        rootPanel!!.add(Box.createVerticalStrut(15))
+
+        rootPanel!!.add(soundTitle)
+        rootPanel!!.add(Box.createVerticalStrut(5))
+        rootPanel!!.add(JLabel("Custom Sound File (.wav recommended):"))
+        rootPanel!!.add(soundField)
+        rootPanel!!.add(Box.createVerticalStrut(8))
+        rootPanel!!.add(testButton)
+        rootPanel!!.add(Box.createVerticalStrut(5))
+        rootPanel!!.add(statusLabel)
+
+        rootPanel!!.add(Box.createVerticalStrut(20))
+        rootPanel!!.add(triggerTitle)
+        rootPanel!!.add(Box.createVerticalStrut(5))
+        rootPanel!!.add(reliabilityNote)
+        rootPanel!!.add(Box.createVerticalStrut(10))
+        rootPanel!!.add(buildSuccess)
+        rootPanel!!.add(buildFailure)
+        rootPanel!!.add(runSuccess)
+        rootPanel!!.add(exception)
+
+        return rootPanel!!
     }
 
-    // 🔴 CRITICAL FIX: Proper modification detection
     override fun isModified(): Boolean {
         val state = SettingsState.instance
         return enableCheckBox!!.isSelected != state.enabled ||
@@ -70,7 +107,6 @@ class SettingsConfigurable : Configurable {
                 exception!!.isSelected != state.playOnException
     }
 
-    // Saves settings when user clicks OK / Apply
     override fun apply() {
         val state = SettingsState.instance
         state.enabled = enableCheckBox!!.isSelected
@@ -81,7 +117,6 @@ class SettingsConfigurable : Configurable {
         state.playOnException = exception!!.isSelected
     }
 
-    // Loads saved settings when page opens
     override fun reset() {
         val state = SettingsState.instance
         enableCheckBox!!.isSelected = state.enabled
@@ -90,12 +125,14 @@ class SettingsConfigurable : Configurable {
         buildFailure!!.isSelected = state.playOnBuildFailure
         runSuccess!!.isSelected = state.playOnRunSuccess
         exception!!.isSelected = state.playOnException
+        statusLabel!!.text = " "
     }
 
     override fun disposeUIResources() {
-        panel = null
+        rootPanel = null
         enableCheckBox = null
         soundField = null
+        statusLabel = null
         buildSuccess = null
         buildFailure = null
         runSuccess = null

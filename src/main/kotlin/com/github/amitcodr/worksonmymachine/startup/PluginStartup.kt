@@ -1,6 +1,6 @@
 package com.github.amitcodr.worksonmymachine.startup
 
-import com.github.amitcodr.worksonmymachine.listeners.ExecutionBusListener
+import com.github.amitcodr.worksonmymachine.listeners.GradleBuildOutputListener
 import com.intellij.execution.ExecutionManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
@@ -14,9 +14,9 @@ class PluginStartup : StartupActivity {
 
         connection.subscribe(
             ExecutionManager.EXECUTION_TOPIC,
-            ExecutionBusListener()
+            GradleBuildOutputListener()
         )
 
-        println("WorksOnMyMachine: Execution listener successfully registered")
+        println("WorksOnMyMachine: GradleBuildOutputListener registered")
     }
 }
