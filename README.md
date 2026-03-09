@@ -46,3 +46,6 @@ If no custom sound is selected, the plugin uses built-in sounds:
 - progress.wav
 - success.wav
 - failure.wav
+
+
+![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
