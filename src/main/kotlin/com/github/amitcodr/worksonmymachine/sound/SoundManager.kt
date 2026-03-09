@@ -8,161 +8,142 @@ import kotlin.concurrent.thread
 object SoundManager {
 
     private const val TAG = "WorksOnMyMachine"
+    private var currentClip: Clip? = null
 
-    // Public entry points (called by listeners)
+    /*
+     * PUBLIC EVENTS
+     */
+
+    fun playBuildStart() {
+        val state = SettingsState.instance
+        if (!state.enabled) return
+
+        play(
+            customPath = state.buildStartSound,
+            defaultResource = "/sounds/progress.wav",
+            source = "BUILD_START"
+        )
+    }
+
     fun playBuildSuccess() {
         val state = SettingsState.instance
-        log("playBuildSuccess() called")
+        if (!state.enabled) return
 
-        if (!state.enabled) {
-            log("Sound is globally disabled")
-            return
-        }
-
-        if (!state.playOnBuildSuccess) {
-            log("Build success sound disabled in settings")
-            return
-        }
-
-        play(state.soundPath, "BUILD_SUCCESS")
+        play(
+            customPath = state.buildSuccessSound,
+            defaultResource = "/sounds/success.wav",
+            source = "BUILD_SUCCESS"
+        )
     }
 
     fun playBuildFailure() {
         val state = SettingsState.instance
-        log("playBuildFailure() called")
+        if (!state.enabled) return
 
-        if (!state.enabled) {
-            log("Sound is globally disabled")
-            return
-        }
-
-        if (!state.playOnBuildFailure) {
-            log("Build failure sound disabled in settings")
-            return
-        }
-
-        play(state.soundPath, "BUILD_FAILURE")
+        play(
+            customPath = state.buildFailureSound,
+            defaultResource = "/sounds/failure.wav",
+            source = "BUILD_FAILURE"
+        )
     }
 
-    fun playRunSuccess() {
-        val state = SettingsState.instance
-        log("playRunSuccess() called")
-
-        if (!state.enabled) {
-            log("Sound is globally disabled")
-            return
-        }
-
-        if (!state.playOnRunSuccess) {
-            log("Run success sound disabled in settings")
-            return
-        }
-
-        play(state.soundPath, "RUN_SUCCESS")
-    }
-
-    fun playException() {
-        val state = SettingsState.instance
-        log("playException() called")
-
-        if (!state.enabled) {
-            log("Sound is globally disabled")
-            return
-        }
-
-        if (!state.playOnException) {
-            log("Exception sound disabled in settings")
-            return
-        }
-
-        play(state.soundPath, "EXCEPTION")
-    }
-
-    /**
-     * Used by Test Audio button
+    /*
+     * SETTINGS TEST BUTTON SUPPORT
      */
-    fun testSound() {
-        val state = SettingsState.instance
-        log("testSound() button pressed")
 
-        if (!state.enabled) {
-            log("Sound disabled in settings - cannot test")
-            return
-        }
-
-        play(state.soundPath, "MANUAL_TEST")
+    fun testFile(path: String) {
+        play(
+            customPath = path,
+            defaultResource = null,
+            source = "TEST_CUSTOM_FILE"
+        )
     }
 
-    /**
-     * Core sound playback (non-blocking + heavily logged)
+    fun playDefaultStart() {
+        play(null, "/sounds/progress.wav", "TEST_DEFAULT_START")
+    }
+
+    fun playDefaultSuccess() {
+        play(null, "/sounds/success.wav", "TEST_DEFAULT_SUCCESS")
+    }
+
+    fun playDefaultFailure() {
+        play(null, "/sounds/failure.wav", "TEST_DEFAULT_FAILURE")
+    }
+
+    /*
+     * CORE PLAYBACK ENGINE
      */
-    private fun play(filePath: String?, source: String) {
-        log("play() invoked from: $source")
-        log("Received path: $filePath")
 
-        if (filePath.isNullOrBlank()) {
-            logError("Sound path is NULL or blank")
-            return
-        }
+    private fun play(
+        customPath: String?,
+        defaultResource: String?,
+        source: String
+    ) {
 
-        val file = File(filePath)
+        log("play() triggered from $source")
 
-        if (!file.exists()) {
-            logError("Sound file DOES NOT exist at path: ${file.absolutePath}")
-            return
-        }
-
-        if (!file.canRead()) {
-            logError("Sound file exists but is NOT readable")
-            return
-        }
-
-        log("Sound file validated. Size=${file.length()} bytes")
-        log("Starting background playback thread...")
-
-        // Play on background thread to avoid freezing IDE UI
         thread(start = true, isDaemon = true, name = "WorksOnMyMachine-Audio") {
+
             try {
-                log("Opening audio input stream...")
 
-                val audioInputStream = AudioSystem.getAudioInputStream(file)
-
-                log("Audio format: ${audioInputStream.format}")
-
-                val clip: Clip = AudioSystem.getClip()
-                log("Clip acquired successfully")
-
-                clip.open(audioInputStream)
-                log("Clip opened successfully")
-
-                // Auto release resources after playback (VERY important for IDE plugins)
-                clip.addLineListener(object : LineListener {
-                    override fun update(event: LineEvent) {
-                        log("LineEvent received: ${event.type}")
-
-                        if (event.type == LineEvent.Type.START) {
-                            log("Playback STARTED")
-                        }
-
-                        if (event.type == LineEvent.Type.STOP) {
-                            log("Playback STOPPED, closing clip")
-                            clip.close()
-                        }
+                val audioInputStream = when {
+                    !customPath.isNullOrBlank() && File(customPath).exists() -> {
+                        log("Using custom sound: $customPath")
+                        AudioSystem.getAudioInputStream(File(customPath))
                     }
-                })
 
-                log("Starting clip playback NOW")
-                clip.start()
+                    defaultResource != null -> {
+                        log("Using default sound: $defaultResource")
+                        val url = javaClass.getResource(defaultResource)
+                            ?: throw Exception("Default sound resource not found: $defaultResource")
 
-            } catch (e: UnsupportedAudioFileException) {
-                logError("Unsupported audio format. Use WAV (PCM 16-bit recommended).", e)
-            } catch (e: LineUnavailableException) {
-                logError("Audio line unavailable (IDE audio system issue).", e)
+                        AudioSystem.getAudioInputStream(url)
+                    }
+
+                    else -> {
+                        logError("No sound source available")
+                        return@thread
+                    }
+                }
+
+                val newClip = AudioSystem.getClip()
+
+                newClip.open(audioInputStream)
+
+                synchronized(this) {
+
+                    // 🔴 STOP PREVIOUS SOUND
+                    currentClip?.let {
+                        if (it.isRunning) {
+                            log("Stopping previous sound")
+                            it.stop()
+                        }
+                        it.close()
+                    }
+
+                    currentClip = newClip
+                }
+
+                newClip.addLineListener { event ->
+                    if (event.type == LineEvent.Type.STOP) {
+                        newClip.close()
+                    }
+                }
+
+                newClip.start()
+
+                log("Playback started")
+
             } catch (e: Exception) {
-                logError("Unexpected error during sound playback.", e)
+                logError("Playback failure", e)
             }
         }
     }
+
+    /*
+     * LOGGING
+     */
 
     private fun log(message: String) {
         println("[$TAG] $message")

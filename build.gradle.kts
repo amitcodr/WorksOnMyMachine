@@ -36,7 +36,8 @@ dependencies {
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        intellijIdea(providers.gradleProperty("platformVersion"))
+        androidStudio("2024.1.2.13")
+
 
         bundledPlugins(
             providers.gradleProperty("platformBundledPlugins").map { it.split(',') }
@@ -137,6 +138,10 @@ tasks {
 
     publishPlugin {
         dependsOn(patchChangelog)
+    }
+
+    buildSearchableOptions {
+        enabled = false
     }
 }
 

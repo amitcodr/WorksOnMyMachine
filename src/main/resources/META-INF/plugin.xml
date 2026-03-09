@@ -4,8 +4,13 @@
     <vendor>amitcodr</vendor>
 
     <description>
-        Plays customizable sound effects on Build Success, Build Failure,
-        Run Success, and Runtime Exceptions in Android Studio.
+        Plays customizable sound effects for Gradle build events and Android app runs.
+        Supports custom sounds for:
+        - Build Start
+        - Build Success
+        - Build Failure
+
+        Includes default sound effects if none are configured.
     </description>
 
     <depends>com.intellij.modules.platform</depends>

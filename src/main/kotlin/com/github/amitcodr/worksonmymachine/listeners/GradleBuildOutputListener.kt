@@ -9,46 +9,70 @@ import com.intellij.openapi.util.Key
 
 class GradleBuildOutputListener : ExecutionListener {
 
+    private var buildRunning = false
+
     override fun processStarted(
         executorId: String,
         env: ExecutionEnvironment,
         handler: com.intellij.execution.process.ProcessHandler
     ) {
+
         val profileName = env.runProfile.name
         println("WorksOnMyMachine: Process started -> $profileName")
 
         handler.addProcessListener(object : ProcessAdapter() {
 
             override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
+
                 val text = event.text ?: return
 
-                // Debug all output
+                // Debug output
                 println("WorksOnMyMachine: [$profileName] -> $text")
 
-                // 🎯 Detect Gradle build success
+                /*
+                 * Detect build start
+                 * Gradle prints task lines like:
+                 * > Task :app:compileDebugKotlin
+                 */
+                if (!buildRunning && text.contains("> Task")) {
+                    buildRunning = true
+                    println("WorksOnMyMachine: BUILD START detected")
+                    SoundManager.playBuildStart()
+                }
+
+                /*
+                 * Detect Gradle success
+                 */
                 if (text.contains("BUILD SUCCESSFUL", ignoreCase = true)) {
-                    println("WorksOnMyMachine: BUILD SUCCESS detected from Gradle")
+                    println("WorksOnMyMachine: BUILD SUCCESS detected")
                     SoundManager.playBuildSuccess()
+                    buildRunning = false
                 }
 
-                // 🎯 Detect Gradle build failure
+                /*
+                 * Detect Gradle failure
+                 */
                 if (text.contains("BUILD FAILED", ignoreCase = true)) {
-                    println("WorksOnMyMachine: BUILD FAILURE detected from Gradle")
+                    println("WorksOnMyMachine: BUILD FAILURE detected")
                     SoundManager.playBuildFailure()
+                    buildRunning = false
                 }
 
-                // 🎯 Detect install success (Android specific strong signal)
-                if (text.contains("Installing APK") ||
-                    text.contains("Installed on") ||
-                    text.contains("Connected to process")
-                ) {
+                /*
+                 * Detect Android run success
+                 * This happens after successful build
+                 */
+                if (text.contains("Connected to process")) {
                     println("WorksOnMyMachine: APP RUN SUCCESS detected")
-                    SoundManager.playRunSuccess()
+                    SoundManager.playBuildSuccess()
                 }
             }
 
             override fun processTerminated(event: ProcessEvent) {
                 println("WorksOnMyMachine: Process terminated -> $profileName")
+
+                // Safety reset
+                buildRunning = false
             }
         })
     }

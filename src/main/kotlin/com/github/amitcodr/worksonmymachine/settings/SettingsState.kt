@@ -12,25 +12,26 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 )
 class SettingsState : PersistentStateComponent<SettingsState> {
 
-    // Master toggle
+    /**
+     * Master enable/disable switch
+     */
     var enabled: Boolean = true
 
-    // Sound file path (custom local sound)
-    var soundPath: String = ""
-
-    // Trigger options
-    var playOnBuildSuccess: Boolean = true
-    var playOnBuildFailure: Boolean = true
-    var playOnRunSuccess: Boolean = false
-    var playOnException: Boolean = true
+    /**
+     * Custom sound overrides
+     * If empty → plugin uses default sounds from resources
+     */
+    var buildStartSound: String = ""
+    var buildSuccessSound: String = ""
+    var buildFailureSound: String = ""
 
     /**
-     * Called by the IDE to save state
+     * Called by IDE when saving state
      */
     override fun getState(): SettingsState = this
 
     /**
-     * Called by the IDE to restore saved state from disk
+     * Called by IDE when restoring state
      */
     override fun loadState(state: SettingsState) {
         XmlSerializerUtil.copyBean(state, this)
@@ -38,7 +39,7 @@ class SettingsState : PersistentStateComponent<SettingsState> {
 
     companion object {
         /**
-         * Global singleton access (Application-level service)
+         * Global singleton access
          */
         val instance: SettingsState
             get() = ApplicationManager.getApplication()
