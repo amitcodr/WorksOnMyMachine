@@ -4,184 +4,229 @@ import com.github.amitcodr.worksonmymachine.sound.SoundManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.ui.components.JBLabel
+import com.intellij.util.ui.FormBuilder
 import java.io.File
 import javax.swing.*
 
 class SettingsConfigurable : Configurable {
 
-    private var rootPanel: JPanel? = null
-    private var enableCheckBox: JCheckBox? = null
+    private var panel: JPanel? = null
 
-    private var startSoundField: TextFieldWithBrowseButton? = null
-    private var successSoundField: TextFieldWithBrowseButton? = null
-    private var failureSoundField: TextFieldWithBrowseButton? = null
+    private var enablePlugin: JCheckBox? = null
+
+    private var enableStart: JCheckBox? = null
+    private var enableSuccess: JCheckBox? = null
+    private var enableFailure: JCheckBox? = null
+
+    private var startField: TextFieldWithBrowseButton? = null
+    private var successField: TextFieldWithBrowseButton? = null
+    private var failureField: TextFieldWithBrowseButton? = null
+
+    private var volumeSlider: JSlider? = null
+    private var volumeLabel: JBLabel? = null
 
     override fun getDisplayName(): String = "WorksOnMyMachine"
 
     override fun createComponent(): JComponent {
 
-        rootPanel = JPanel()
-        rootPanel!!.layout = BoxLayout(rootPanel, BoxLayout.Y_AXIS)
-        rootPanel!!.border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-
-        enableCheckBox = JCheckBox("Enable Sound Effects")
-
         val descriptor = FileChooserDescriptor(true, false, false, false, false, false)
 
-        val title = JLabel("Build Sounds")
-        title.font = title.font.deriveFont(16f)
+        /* MASTER ENABLE */
 
-        startSoundField = TextFieldWithBrowseButton()
-        successSoundField = TextFieldWithBrowseButton()
-        failureSoundField = TextFieldWithBrowseButton()
+        val enablePluginLocal = JCheckBox("Enable Sound Effects")
+        enablePlugin = enablePluginLocal
 
-        startSoundField!!.addBrowseFolderListener(
+        /* ENABLE CHECKBOXES */
+
+        val enableStartLocal = JCheckBox("Enable Build Start Sound")
+        val enableSuccessLocal = JCheckBox("Enable Build Success Sound")
+        val enableFailureLocal = JCheckBox("Enable Build Failure Sound")
+
+        enableStart = enableStartLocal
+        enableSuccess = enableSuccessLocal
+        enableFailure = enableFailureLocal
+
+        /* FILE SELECTORS */
+
+        val startFieldLocal = TextFieldWithBrowseButton()
+        val successFieldLocal = TextFieldWithBrowseButton()
+        val failureFieldLocal = TextFieldWithBrowseButton()
+
+        startField = startFieldLocal
+        successField = successFieldLocal
+        failureField = failureFieldLocal
+
+        startFieldLocal.addBrowseFolderListener(
             "Select Build Start Sound",
             "Choose a sound file",
             null,
             descriptor
         )
 
-        successSoundField!!.addBrowseFolderListener(
+        successFieldLocal.addBrowseFolderListener(
             "Select Build Success Sound",
             "Choose a sound file",
             null,
             descriptor
         )
 
-        failureSoundField!!.addBrowseFolderListener(
+        failureFieldLocal.addBrowseFolderListener(
             "Select Build Failure Sound",
             "Choose a sound file",
             null,
             descriptor
         )
 
+        /* TEST BUTTONS */
+
         val startTest = JButton("Test")
         val successTest = JButton("Test")
         val failureTest = JButton("Test")
 
         startTest.addActionListener {
-            val path = startSoundField!!.text
-            if (File(path).exists()) {
-                SoundManager.testFile(path)
-            } else {
-                SoundManager.playDefaultStart()
-            }
+            val path = startFieldLocal.text
+            if (File(path).exists()) SoundManager.testFile(path)
+            else SoundManager.playDefaultStart()
         }
 
         successTest.addActionListener {
-            val path = successSoundField!!.text
-            if (File(path).exists()) {
-                SoundManager.testFile(path)
-            } else {
-                SoundManager.playDefaultSuccess()
-            }
+            val path = successFieldLocal.text
+            if (File(path).exists()) SoundManager.testFile(path)
+            else SoundManager.playDefaultSuccess()
         }
 
         failureTest.addActionListener {
-            val path = failureSoundField!!.text
-            if (File(path).exists()) {
-                SoundManager.testFile(path)
-            } else {
-                SoundManager.playDefaultFailure()
-            }
+            val path = failureFieldLocal.text
+            if (File(path).exists()) SoundManager.testFile(path)
+            else SoundManager.playDefaultFailure()
         }
 
+        /* VOLUME */
+
+        val volumeSliderLocal = JSlider(0, 100, 80)
+        val volumeLabelLocal = JBLabel("Volume: 80%")
+
+        volumeSliderLocal.majorTickSpacing = 20
+        volumeSliderLocal.paintTicks = true
+        volumeSliderLocal.paintLabels = true
+
+        volumeSliderLocal.addChangeListener {
+            volumeLabelLocal.text = "Volume: ${volumeSliderLocal.value}%"
+        }
+
+        volumeSlider = volumeSliderLocal
+        volumeLabel = volumeLabelLocal
+
+        /* RESET BUTTON */
+
         val resetButton = JButton("Reset to Default Sounds")
-        resetButton.toolTipText = "Remove all custom sound effects"
 
         resetButton.addActionListener {
 
             val result = JOptionPane.showConfirmDialog(
-                rootPanel,
-                "Reset all custom sound effects to plugin defaults?",
+                panel,
+                "Reset all custom sound effects?",
                 "Reset Sounds",
                 JOptionPane.YES_NO_OPTION
             )
 
             if (result == JOptionPane.YES_OPTION) {
-                startSoundField!!.text = ""
-                successSoundField!!.text = ""
-                failureSoundField!!.text = ""
+                startFieldLocal.text = ""
+                successFieldLocal.text = ""
+                failureFieldLocal.text = ""
             }
         }
 
-        rootPanel!!.add(enableCheckBox)
-        rootPanel!!.add(Box.createVerticalStrut(15))
-
-        rootPanel!!.add(title)
-        rootPanel!!.add(Box.createVerticalStrut(10))
-
-        rootPanel!!.add(createSoundRow("Build Start Sound:", startSoundField!!, startTest))
-        rootPanel!!.add(createSoundRow("Build Success Sound:", successSoundField!!, successTest))
-        rootPanel!!.add(createSoundRow("Build Failure Sound:", failureSoundField!!, failureTest))
-
-        rootPanel!!.add(Box.createVerticalStrut(10))
-        rootPanel!!.add(resetButton)
-
-        rootPanel!!.add(Box.createVerticalStrut(15))
-
-        val hint = JLabel(
-            "<html><i>If no custom sound is selected, the plugin will use default sounds.</i></html>"
+        val hint = JBLabel(
+            "<html><i>If no custom sound is selected, default plugin sounds will be used.</i></html>"
         )
 
-        rootPanel!!.add(hint)
+        /* BUILD UI */
 
-        return rootPanel!!
-    }
+        panel = FormBuilder.createFormBuilder()
 
-    private fun createSoundRow(
-        labelText: String,
-        field: TextFieldWithBrowseButton,
-        button: JButton
-    ): JPanel {
+            .addComponent(enablePluginLocal)
 
-        val panel = JPanel()
-        panel.layout = BoxLayout(panel, BoxLayout.X_AXIS)
+            .addSeparator()
 
-        val label = JLabel(labelText)
-        label.preferredSize = java.awt.Dimension(150, 25)
+            .addComponent(enableStartLocal)
+            .addLabeledComponent("Sound File:", startFieldLocal)
+            .addComponent(startTest)
 
-        panel.add(label)
-        panel.add(field)
-        panel.add(Box.createHorizontalStrut(5))
-        panel.add(button)
+            .addComponent(enableSuccessLocal)
+            .addLabeledComponent("Sound File:", successFieldLocal)
+            .addComponent(successTest)
 
-        return panel
+            .addComponent(enableFailureLocal)
+            .addLabeledComponent("Sound File:", failureFieldLocal)
+            .addComponent(failureTest)
+
+            .addSeparator()
+
+            .addComponent(volumeLabelLocal)
+            .addComponent(volumeSliderLocal)
+
+            .addSeparator()
+
+            .addComponent(resetButton)
+            .addComponent(hint)
+
+            .panel
+
+        return panel!!
     }
 
     override fun isModified(): Boolean {
 
         val state = SettingsState.instance
 
-        return enableCheckBox!!.isSelected != state.enabled ||
-                startSoundField!!.text != state.buildStartSound ||
-                successSoundField!!.text != state.buildSuccessSound ||
-                failureSoundField!!.text != state.buildFailureSound
+        return enablePlugin!!.isSelected != state.enabled ||
+                enableStart!!.isSelected != state.enableStart ||
+                enableSuccess!!.isSelected != state.enableSuccess ||
+                enableFailure!!.isSelected != state.enableFailure ||
+                startField!!.text != state.buildStartSound ||
+                successField!!.text != state.buildSuccessSound ||
+                failureField!!.text != state.buildFailureSound ||
+                volumeSlider!!.value != state.volume
     }
 
     override fun apply() {
 
         val state = SettingsState.instance
 
-        state.enabled = enableCheckBox!!.isSelected
-        state.buildStartSound = startSoundField!!.text
-        state.buildSuccessSound = successSoundField!!.text
-        state.buildFailureSound = failureSoundField!!.text
+        state.enabled = enablePlugin!!.isSelected
+
+        state.enableStart = enableStart!!.isSelected
+        state.enableSuccess = enableSuccess!!.isSelected
+        state.enableFailure = enableFailure!!.isSelected
+
+        state.buildStartSound = startField!!.text
+        state.buildSuccessSound = successField!!.text
+        state.buildFailureSound = failureField!!.text
+
+        state.volume = volumeSlider!!.value
     }
 
     override fun reset() {
 
         val state = SettingsState.instance
 
-        enableCheckBox!!.isSelected = state.enabled
+        enablePlugin!!.isSelected = state.enabled
 
-        startSoundField!!.text = state.buildStartSound
-        successSoundField!!.text = state.buildSuccessSound
-        failureSoundField!!.text = state.buildFailureSound
+        enableStart!!.isSelected = state.enableStart
+        enableSuccess!!.isSelected = state.enableSuccess
+        enableFailure!!.isSelected = state.enableFailure
+
+        startField!!.text = state.buildStartSound
+        successField!!.text = state.buildSuccessSound
+        failureField!!.text = state.buildFailureSound
+
+        volumeSlider!!.value = state.volume
+        volumeLabel!!.text = "Volume: ${state.volume}%"
     }
 
     override fun disposeUIResources() {
-        rootPanel = null
+        panel = null
     }
 }

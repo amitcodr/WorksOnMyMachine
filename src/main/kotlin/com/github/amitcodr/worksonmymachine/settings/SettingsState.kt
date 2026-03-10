@@ -13,6 +13,14 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 class SettingsState : PersistentStateComponent<SettingsState> {
 
     /**
+     * Individual enable/disable switch & volume
+     */
+    var enableStart: Boolean = true
+    var enableSuccess: Boolean = true
+    var enableFailure: Boolean = true
+    var volume: Int = 80
+
+    /**
      * Master enable/disable switch
      */
     var enabled: Boolean = true

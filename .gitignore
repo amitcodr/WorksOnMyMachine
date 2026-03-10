@@ -1,7 +1,20 @@
+# OS
 .DS_Store
-.gradle
+
+# IDE
 .idea
 .intellijPlatform
-.kotlin
-.qodana
+
+# Gradle
+.gradle
 build
+
+# Kotlin
+.kotlin
+
+# JetBrains tools
+.qodana
+
+# Local configs / secrets
+local.properties
+*.secrets

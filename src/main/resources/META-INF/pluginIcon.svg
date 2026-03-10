@@ -1,0 +1,20 @@
+<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+    <rect width="40" height="40" rx="8" fill="#2B2D30"/>
+
+    <!-- speaker -->
+    <polygon points="10,16 16,16 22,12 22,28 16,24 10,24"
+             fill="#6FCF97"/>
+
+    <!-- sound waves -->
+    <path d="M25 16 C28 18, 28 22, 25 24"
+          stroke="#6FCF97"
+          stroke-width="2"
+          fill="none"
+          stroke-linecap="round"/>
+
+    <path d="M28 14 C33 18, 33 22, 28 26"
+          stroke="#6FCF97"
+          stroke-width="2"
+          fill="none"
+          stroke-linecap="round"/>
+</svg>

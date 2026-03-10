@@ -4,6 +4,7 @@ import com.github.amitcodr.worksonmymachine.settings.SettingsState
 import java.io.File
 import javax.sound.sampled.*
 import kotlin.concurrent.thread
+import kotlin.math.log10
 
 object SoundManager {
 
@@ -16,7 +17,7 @@ object SoundManager {
 
     fun playBuildStart() {
         val state = SettingsState.instance
-        if (!state.enabled) return
+        if (!state.enabled || !state.enableStart) return
 
         play(
             customPath = state.buildStartSound,
@@ -27,7 +28,7 @@ object SoundManager {
 
     fun playBuildSuccess() {
         val state = SettingsState.instance
-        if (!state.enabled) return
+        if (!state.enabled || !state.enableSuccess) return
 
         play(
             customPath = state.buildSuccessSound,
@@ -38,7 +39,7 @@ object SoundManager {
 
     fun playBuildFailure() {
         val state = SettingsState.instance
-        if (!state.enabled) return
+        if (!state.enabled || !state.enableFailure) return
 
         play(
             customPath = state.buildFailureSound,
@@ -52,11 +53,7 @@ object SoundManager {
      */
 
     fun testFile(path: String) {
-        play(
-            customPath = path,
-            defaultResource = null,
-            source = "TEST_CUSTOM_FILE"
-        )
+        play(path, null, "TEST_CUSTOM_FILE")
     }
 
     fun playDefaultStart() {
@@ -108,12 +105,13 @@ object SoundManager {
                 }
 
                 val newClip = AudioSystem.getClip()
-
                 newClip.open(audioInputStream)
+
+                applyVolume(newClip)
 
                 synchronized(this) {
 
-                    // 🔴 STOP PREVIOUS SOUND
+                    // Stop currently playing sound
                     currentClip?.let {
                         if (it.isRunning) {
                             log("Stopping previous sound")
@@ -138,6 +136,34 @@ object SoundManager {
             } catch (e: Exception) {
                 logError("Playback failure", e)
             }
+        }
+    }
+
+    /*
+     * APPLY VOLUME FROM SETTINGS
+     */
+
+    private fun applyVolume(clip: Clip) {
+
+        try {
+            val volume = SettingsState.instance.volume
+
+            if (volume <= 0) {
+                clip.stop()
+                return
+            }
+
+            val control = clip.getControl(FloatControl.Type.MASTER_GAIN) as FloatControl
+
+            val volumeFloat = volume / 100f
+            val dB = (20 * log10(volumeFloat))
+
+            control.value = dB
+
+            log("Volume applied: $volume%")
+
+        } catch (e: Exception) {
+            log("Volume control not supported by audio system")
         }
     }
 
